@@ -124,7 +124,7 @@ Klik kanan `view/LoginForm.java` → **Run File**
 
 ## Screenshot
 
-> (Tambahkan screenshot aplikasi di sini setelah aplikasi berjalan)
+> <img width="1918" height="1013" alt="Screenshot 2026-06-25 125512" src="https://github.com/user-attachments/assets/219bd485-7bcd-4a62-a24e-7e2a1e5f74bd" />
 
 ---
 
