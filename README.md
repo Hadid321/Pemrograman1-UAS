@@ -9,10 +9,10 @@ Mendukung 6 game populer: Honkai: Star Rail, Genshin Impact, Roblox, Mobile Lege
 
 | Nama | NIM |
 |------|-----|
-| Hadid Riansyah (Ketua) | - |
-| Aditya Darmawan | - |
-| Ahmad Faiz Arkhan | - |
-| Imron Hafidz | - |
+| Aditya Darmawan (Ketua) | 241011400824 |
+| Ahmad Faiz Arkhan | 241011400813 |
+| Hadid Riansyah | 241011400908 |
+| Imron Hafidz | 241011400814 |
 
 **Kelas:** 04TPLE011 | **Mata Kuliah:** Pemrograman 1 | **Tahun Akademik:** 2025/2026
 
