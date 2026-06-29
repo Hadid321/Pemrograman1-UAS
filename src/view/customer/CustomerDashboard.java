@@ -405,7 +405,7 @@ public class CustomerDashboard extends JFrame {
                         selPaket[0]=pid; selHarga[0]=h;
                         lblPaketSel.setText(p[1]+"  -  "+p[4]); lblPaketSel.setForeground(Theme.TEXT);
                         lblTotalSel.setText("Total: "+p[4]); btnBayar.setEnabled(true);
-                        loadPaket.run(); // refresh card visuals
+                        grid.repaint(); // refresh card visuals
                     }
                     public void mouseEntered(MouseEvent e){ pCard.setBorder(new EmptyBorder(13,13,13,13)); }
                     public void mouseExited(MouseEvent e){  pCard.setBorder(new EmptyBorder(14,14,14,14)); }
@@ -438,7 +438,9 @@ public class CustomerDashboard extends JFrame {
             String server=txtServer.isVisible()?txtServer.getText().trim():"";
             boolean ok=trxDAO.insertTransaksi(user.getIdUser(),selPaket[0],uid,server,selMethod[0],selHarga[0]);
             if(ok){
-                JOptionPane.showMessageDialog(this,"Pesanan berhasil dibuat!\n\nPaket akan segera diproses.\nCek menu 'Pesanan Saya' untuk detail.","Pesanan Berhasil",JOptionPane.INFORMATION_MESSAGE);
+                String namaGame=games.get(selGame[0])[1];
+                String namaPaket=lblPaketSel.getText().replace("Belum ada paket dipilih","");
+                showPaymentDialog(selMethod[0], selHarga[0], namaGame, namaPaket, uid);
                 btnBayar.setEnabled(false); selPaket[0]=-1;
                 lblPaketSel.setText("Belum ada paket dipilih"); lblPaketSel.setForeground(Theme.SUBTEXT);
                 lblTotalSel.setText("Total: Rp 0"); loadPaket.run();
@@ -546,6 +548,156 @@ public class CustomerDashboard extends JFrame {
         twoCol.add(editCard); twoCol.add(infoCard);
         inner.add(twoCol);
         content.add(UI.wrapScroll(page));
+    }
+
+
+    // ══════════════════════════════════════════════════════════
+    // POPUP INSTRUKSI PEMBAYARAN
+    // ══════════════════════════════════════════════════════════
+    private void showPaymentDialog(String metode, double total, String game, String paket, String uid){
+        JDialog dialog=new JDialog(this,"Instruksi Pembayaran",true);
+        dialog.setSize(500,560); dialog.setLocationRelativeTo(this); dialog.setResizable(false);
+
+        JPanel main=new JPanel(){protected void paintComponent(Graphics g){g.setColor(Theme.BG);g.fillRect(0,0,getWidth(),getHeight());}};
+        main.setLayout(new BoxLayout(main,BoxLayout.Y_AXIS));
+        main.setBorder(new EmptyBorder(28,28,28,28));
+
+        // Header sukses
+        UI.RoundPanel hCard=new UI.RoundPanel(12,new Color(16,185,129,25),new Color(16,185,129,60));
+        hCard.setLayout(new BoxLayout(hCard,BoxLayout.Y_AXIS));
+        hCard.setBorder(new EmptyBorder(16,18,16,18));
+        hCard.setMaximumSize(new Dimension(Integer.MAX_VALUE,80));
+        JLabel lOk=UI.label("Pesanan Berhasil Dibuat!",new Font("Segoe UI",Font.BOLD,15),Theme.GREEN_LT); lOk.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel lOkSub=UI.label("Selesaikan pembayaran untuk memproses top-up kamu",Theme.F_SMALL,Theme.SUBTEXT); lOkSub.setAlignmentX(Component.LEFT_ALIGNMENT);
+        hCard.add(lOk); hCard.add(Box.createVerticalStrut(5)); hCard.add(lOkSub);
+        main.add(hCard); main.add(Box.createVerticalStrut(14));
+
+        // Detail order
+        UI.RoundPanel dCard=new UI.RoundPanel(12,Theme.CARD,Theme.BORDER);
+        dCard.setLayout(new BoxLayout(dCard,BoxLayout.Y_AXIS));
+        dCard.setBorder(new EmptyBorder(14,16,14,16));
+        dCard.setMaximumSize(new Dimension(Integer.MAX_VALUE,155));
+        JLabel lDet=UI.label("Detail Pesanan",Theme.F_HEAD,Theme.TEXT); lDet.setAlignmentX(Component.LEFT_ALIGNMENT);
+        dCard.add(lDet); dCard.add(Box.createVerticalStrut(10));
+        dCard.add(detailRow("Game",game));
+        dCard.add(Box.createVerticalStrut(5));
+        dCard.add(detailRow("Paket",paket));
+        dCard.add(Box.createVerticalStrut(5));
+        dCard.add(detailRow("UID / ID",uid));
+        dCard.add(Box.createVerticalStrut(5));
+        dCard.add(detailRow("Metode",metode));
+        dCard.add(Box.createVerticalStrut(5));
+        dCard.add(detailRow("Status","Menunggu Pembayaran"));
+        main.add(dCard); main.add(Box.createVerticalStrut(14));
+
+        // Instruksi
+        UI.RoundPanel iCard=new UI.RoundPanel(12,Theme.CARD,Theme.BORDER);
+        iCard.setLayout(new BoxLayout(iCard,BoxLayout.Y_AXIS));
+        iCard.setBorder(new EmptyBorder(14,16,14,16));
+        iCard.setMaximumSize(new Dimension(Integer.MAX_VALUE,180));
+        JLabel lInstr=UI.label("Cara Pembayaran via "+metode,Theme.F_HEAD,Theme.TEXT); lInstr.setAlignmentX(Component.LEFT_ALIGNMENT);
+        iCard.add(lInstr); iCard.add(Box.createVerticalStrut(10));
+        for(String s:getInstruksi(metode,total)){
+            JLabel li=UI.label(s,Theme.F_SMALL,Theme.SUBTEXT); li.setAlignmentX(Component.LEFT_ALIGNMENT);
+            iCard.add(li); iCard.add(Box.createVerticalStrut(3));
+        }
+        main.add(iCard); main.add(Box.createVerticalStrut(14));
+
+        // Total
+        UI.RoundPanel tCard=new UI.RoundPanel(12,new Color(99,102,241,20),new Color(99,102,241,60));
+        tCard.setLayout(new BoxLayout(tCard,BoxLayout.Y_AXIS));
+        tCard.setBorder(new EmptyBorder(12,16,12,16));
+        tCard.setMaximumSize(new Dimension(Integer.MAX_VALUE,70));
+        JLabel lTL=UI.label("Total yang Harus Dibayar",Theme.F_SMALL,Theme.SUBTEXT); lTL.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JLabel lTV=UI.label(String.format("Rp %,.0f",total),new Font("Segoe UI",Font.BOLD,24),Theme.ACCENT); lTV.setAlignmentX(Component.LEFT_ALIGNMENT);
+        tCard.add(lTL); tCard.add(Box.createVerticalStrut(4)); tCard.add(lTV);
+        main.add(tCard); main.add(Box.createVerticalStrut(16));
+
+        // Tombol
+        JButton btnOk=UI.primaryBtn("Saya Sudah Bayar - Tutup",Theme.ACCENT,Color.WHITE);
+        btnOk.setAlignmentX(Component.LEFT_ALIGNMENT);
+        btnOk.addActionListener(ev->{
+            JOptionPane.showMessageDialog(dialog,
+                "Terima kasih! Admin akan memverifikasi pembayaran kamu.\nCek \'Pesanan Saya\' untuk update status.",
+                "Menunggu Konfirmasi",JOptionPane.INFORMATION_MESSAGE);
+            dialog.dispose();
+        });
+        main.add(btnOk);
+        JScrollPane sp = new JScrollPane(main);
+        sp.setBorder(null);
+        sp.getViewport().setBackground(Theme.BG);
+        sp.getVerticalScrollBar().setUnitIncrement(16);
+        dialog.add(sp);
+        dialog.setVisible(true);
+    }
+
+    private JPanel detailRow(String label,String value){
+        JPanel row=new JPanel(new BorderLayout());
+        row.setOpaque(false); row.setMaximumSize(new Dimension(Integer.MAX_VALUE,22));
+        row.add(UI.label(label,Theme.F_SMALL,Theme.MUTED),BorderLayout.WEST);
+        row.add(UI.label(value,Theme.F_SMBD,Theme.TEXT),BorderLayout.EAST);
+        return row;
+    }
+
+    private String[] getInstruksi(String metode,double total){
+        String t=String.format("Rp %,.0f",total);
+        switch(metode){
+            case "DANA": return new String[]{
+                "1. Buka aplikasi DANA di HP kamu",
+                "2. Pilih menu Kirim -> ke Nomor HP",
+                "3. No. tujuan: 0812-0000-1234 (a/n ZenithStore)",
+                "4. Masukkan nominal: "+t,
+                "5. Tambahkan catatan: nomor invoice pesanan",
+                "6. Konfirmasi & selesaikan pembayaran"};
+            case "GoPay": return new String[]{
+                "1. Buka aplikasi Gojek di HP kamu",
+                "2. Pilih GoPay -> Kirim",
+                "3. No. tujuan: 0812-0000-5678 (a/n ZenithStore)",
+                "4. Masukkan nominal: "+t,
+                "5. Tambahkan catatan: nomor invoice pesanan",
+                "6. Konfirmasi & selesaikan pembayaran"};
+            case "OVO": return new String[]{
+                "1. Buka aplikasi OVO di HP kamu",
+                "2. Pilih Transfer -> ke Sesama OVO",
+                "3. No. tujuan: 0812-0000-9012 (a/n ZenithStore)",
+                "4. Masukkan nominal: "+t,
+                "5. Tambahkan catatan: nomor invoice pesanan",
+                "6. Konfirmasi & selesaikan pembayaran"};
+            case "Transfer Bank": return new String[]{
+                "1. Buka aplikasi mobile banking kamu",
+                "2. Pilih Transfer Antar Bank",
+                "3. Bank tujuan: BCA - No. Rek: 1234567890",
+                "4. Atas nama: ZenithStore Indonesia",
+                "5. Nominal: "+t,
+                "6. Berita transfer: nomor invoice pesanan"};
+            case "Alfamart": return new String[]{
+                "1. Pergi ke minimarket Alfamart terdekat",
+                "2. Tunjukkan nomor invoice ke kasir",
+                "3. Kasir akan memproses pembayaran",
+                "4. Bayar sebesar: "+t,
+                "5. Simpan struk sebagai bukti pembayaran"};
+            case "Indomaret": return new String[]{
+                "1. Pergi ke minimarket Indomaret terdekat",
+                "2. Tunjukkan nomor invoice ke kasir",
+                "3. Kasir akan memproses pembayaran",
+                "4. Bayar sebesar: "+t,
+                "5. Simpan struk sebagai bukti pembayaran"};
+            case "ShopeePay": return new String[]{
+                "1. Buka aplikasi Shopee di HP kamu",
+                "2. Pilih ShopeePay -> Transfer",
+                "3. No. tujuan: 0812-0000-3456 (a/n ZenithStore)",
+                "4. Masukkan nominal: "+t,
+                "5. Tambahkan catatan: nomor invoice pesanan",
+                "6. Konfirmasi & selesaikan pembayaran"};
+            case "LinkAja": return new String[]{
+                "1. Buka aplikasi LinkAja di HP kamu",
+                "2. Pilih Kirim Uang",
+                "3. No. tujuan: 0812-0000-7890 (a/n ZenithStore)",
+                "4. Masukkan nominal: "+t,
+                "5. Tambahkan catatan: nomor invoice pesanan",
+                "6. Konfirmasi & selesaikan pembayaran"};
+            default: return new String[]{"Hubungi admin untuk instruksi pembayaran.","Total: "+t};
+        }
     }
 
     private JPanel makePage(){JPanel p=new JPanel(){protected void paintComponent(Graphics g){g.setColor(Theme.BG);g.fillRect(0,0,getWidth(),getHeight());}};p.setLayout(new BorderLayout());return p;}
