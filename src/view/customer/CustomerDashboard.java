@@ -228,228 +228,453 @@ public class CustomerDashboard extends JFrame {
     // ══════════════════════════════════════════════════════════
     // TOP-UP - style Codashop/Ourastore
     // ══════════════════════════════════════════════════════════
-    private void pageTopUp(){
-        JPanel page=new JPanel(){protected void paintComponent(Graphics g){g.setColor(Theme.BG);g.fillRect(0,0,getWidth(),getHeight());}};
-        page.setLayout(new BorderLayout());
-        JPanel inner=new JPanel(); inner.setOpaque(false); inner.setLayout(new BoxLayout(inner,BoxLayout.Y_AXIS));
-        inner.setBorder(new EmptyBorder(24,28,24,28));
-
-        ArrayList<String[]> games=gDao.getAllGame();
-        Color[] gc=Theme.GAME_COLORS;
-
-        // Step 1: Pilih Game (horizontal tabs dengan warna)
-        inner.add(UI.label("Step 1 - Pilih Game",Theme.F_HEAD,Theme.SUBTEXT));
-        inner.add(Box.createVerticalStrut(12));
-        JPanel tabRow=new JPanel(new FlowLayout(FlowLayout.LEFT,10,0)); tabRow.setOpaque(false); tabRow.setMaximumSize(new Dimension(Integer.MAX_VALUE,50));
-        JButton[] tabBtns=new JButton[games.size()];
-        for(int i=0;i<games.size();i++){
-            Color c=gc[i%gc.length];
-            final int fi=i;
-            JButton tb=new JButton(games.get(i)[1]){
-                protected void paintComponent(Graphics g){
-                    Graphics2D g2=(Graphics2D)g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
-                    Color bg2=fi==0?c:new Color(c.getRed(),c.getGreen(),c.getBlue(),40);
-                    g2.setColor(bg2); g2.fill(new RoundRectangle2D.Double(0,0,getWidth(),getHeight(),8,8));
-                    g2.dispose(); super.paintComponent(g);
-                }
-            };
-            tb.setFont(Theme.F_SMBD); tb.setForeground(Color.WHITE);
-            tb.setContentAreaFilled(false); tb.setBorderPainted(false); tb.setFocusPainted(false);
-            tb.setBorder(new EmptyBorder(8,16,8,16));
-            tb.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            tabBtns[i]=tb; tabRow.add(tb);
+private void pageTopUp() {
+    JPanel page = new JPanel() {
+        protected void paintComponent(Graphics g) {
+            g.setColor(Theme.BG);
+            g.fillRect(0, 0, getWidth(), getHeight());
         }
-        inner.add(tabRow); inner.add(Box.createVerticalStrut(20));
+    };
+    page.setLayout(new BorderLayout());
+    JPanel inner = new JPanel();
+    inner.setOpaque(false);
+    inner.setLayout(new BoxLayout(inner, BoxLayout.Y_AXIS));
+    inner.setBorder(new EmptyBorder(24, 28, 24, 28));
 
-        // Divider
-        inner.add(UI.sep()); inner.add(Box.createVerticalStrut(20));
+    ArrayList<String[]> games = gDao.getAllGame();
+    Color[] gc = Theme.GAME_COLORS;
 
-        // Step 2: Isi data akun
-        inner.add(UI.label("Step 2 - Masukkan Data Akun Game",Theme.F_HEAD,Theme.SUBTEXT));
-        inner.add(Box.createVerticalStrut(12));
+    // State variables
+    final int[] selPaket = {-1};
+    final double[] selHarga = {0};
+    final int[] selGame = {0};
+    final int[] selIdVoucher = {-1};
+    final double[] selDiskon = {0};
 
-        // Panel data akun (dinamis per game)
-        UI.RoundPanel dataPanel=new UI.RoundPanel(10,Theme.CARD,Theme.BORDER);
-        dataPanel.setLayout(new BoxLayout(dataPanel,BoxLayout.Y_AXIS));
-        dataPanel.setBorder(new EmptyBorder(16,18,16,18));
-        dataPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE,200));
-
-        JTextField txtID=UI.textField();
-        JTextField txtServer=UI.textField();
-        JLabel lblIDLabel=UI.label("User ID / UID",Theme.F_BOLD,Theme.SUBTEXT); lblIDLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JLabel lblServerLabel=UI.label("Server (opsional)",Theme.F_BOLD,Theme.SUBTEXT); lblServerLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JLabel lblHint=UI.label("",Theme.F_SMALL,Theme.MUTED); lblHint.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        dataPanel.add(lblIDLabel); dataPanel.add(Box.createVerticalStrut(6)); dataPanel.add(txtID);
-        dataPanel.add(Box.createVerticalStrut(12)); dataPanel.add(lblServerLabel); dataPanel.add(Box.createVerticalStrut(6)); dataPanel.add(txtServer);
-        dataPanel.add(Box.createVerticalStrut(8)); dataPanel.add(lblHint);
-
-        inner.add(dataPanel); inner.add(Box.createVerticalStrut(20));
-        inner.add(UI.sep()); inner.add(Box.createVerticalStrut(20));
-
-        // Step 3: Pilih Paket
-        inner.add(UI.label("Step 3 - Pilih Paket",Theme.F_HEAD,Theme.SUBTEXT));
-        inner.add(Box.createVerticalStrut(12));
-
-        JPanel gridWrap=new JPanel(new BorderLayout()); gridWrap.setOpaque(false);
-        JPanel grid=new JPanel(new GridLayout(0,4,12,12)); grid.setOpaque(false);
-        gridWrap.add(grid,BorderLayout.NORTH);
-        inner.add(gridWrap); inner.add(Box.createVerticalStrut(20));
-        inner.add(UI.sep()); inner.add(Box.createVerticalStrut(20));
-
-        // Step 4: Metode pembayaran + Konfirmasi
-        inner.add(UI.label("Step 4 - Metode Pembayaran",Theme.F_HEAD,Theme.SUBTEXT));
-        inner.add(Box.createVerticalStrut(12));
-
-        String[] methods={"DANA","GoPay","OVO","Transfer Bank","Alfamart","Indomaret","ShopeePay","LinkAja"};
-        JPanel methodGrid=new JPanel(new GridLayout(2,4,10,10)); methodGrid.setOpaque(false); methodGrid.setMaximumSize(new Dimension(Integer.MAX_VALUE,90));
-        JButton[] mBtns=new JButton[methods.length];
-        final String[] selMethod={methods[0]};
-        for(int i=0;i<methods.length;i++){
-            final int fi2=i;
-            mBtns[i]=new JButton(methods[i]){
-                protected void paintComponent(Graphics g){
-                    Graphics2D g2=(Graphics2D)g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
-                    Color bg2=getText().equals(selMethod[0])?Theme.ACCENT:Theme.CARD2;
-                    g2.setColor(bg2); g2.fill(new RoundRectangle2D.Double(0,0,getWidth(),getHeight(),8,8));
-                    if(getText().equals(selMethod[0])){g2.setColor(Theme.ACCENT.brighter());g2.draw(new RoundRectangle2D.Double(0,0,getWidth()-1,getHeight()-1,8,8));}
-                    g2.dispose(); super.paintComponent(g);
+    // Step 1: Pilih Game
+    inner.add(UI.label("Step 1 - Pilih Game", Theme.F_HEAD, Theme.SUBTEXT));
+    inner.add(Box.createVerticalStrut(12));
+    JPanel tabRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+    tabRow.setOpaque(false);
+    tabRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+    JButton[] tabBtns = new JButton[games.size()];
+    for (int i = 0; i < games.size(); i++) {
+        Color c = gc[i % gc.length];
+        final int fi = i;
+        JButton tb = new JButton(games.get(i)[1]) {
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                boolean active = selGame[0] == fi;
+                Color bg2 = active ? c : new Color(c.getRed(), c.getGreen(), c.getBlue(), 40);
+                g2.setColor(bg2);
+                g2.fill(new RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), 8, 8));
+                if (!active) {
+                    g2.setColor(new Color(c.getRed(), c.getGreen(), c.getBlue(), 100));
+                    g2.draw(new RoundRectangle2D.Double(0, 0, getWidth() - 1, getHeight() - 1, 8, 8));
                 }
-            };
-            mBtns[i].setFont(Theme.F_SMBD); mBtns[i].setForeground(Color.WHITE);
-            mBtns[i].setContentAreaFilled(false); mBtns[i].setBorderPainted(false); mBtns[i].setFocusPainted(false);
-            mBtns[i].setBorder(new EmptyBorder(6,10,6,10));
-            mBtns[i].setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            mBtns[i].addActionListener(e->{ selMethod[0]=methods[fi2]; for(JButton b:mBtns)b.repaint(); });
-            methodGrid.add(mBtns[i]);
-        }
-        inner.add(methodGrid); inner.add(Box.createVerticalStrut(20));
-
-        // Summary + Bayar
-        UI.RoundPanel summary=new UI.RoundPanel(10,Theme.CARD,Theme.BORDER);
-        summary.setLayout(new BorderLayout(20,0));
-        summary.setBorder(new EmptyBorder(16,20,16,20));
-        summary.setMaximumSize(new Dimension(Integer.MAX_VALUE,80));
-        JPanel sumLeft=new JPanel(); sumLeft.setOpaque(false); sumLeft.setLayout(new BoxLayout(sumLeft,BoxLayout.Y_AXIS));
-        JLabel lblPaketSel=UI.label("Belum ada paket dipilih",Theme.F_BOLD,Theme.SUBTEXT);
-        JLabel lblTotalSel=UI.label("Total: Rp 0",new Font("Segoe UI",Font.BOLD,20),Theme.ACCENT);
-        sumLeft.add(lblPaketSel); sumLeft.add(Box.createVerticalStrut(4)); sumLeft.add(lblTotalSel);
-        JButton btnBayar=UI.primaryBtn("Bayar Sekarang",Theme.GREEN,new Color(10,14,26));
-        btnBayar.setFont(new Font("Segoe UI",Font.BOLD,14)); btnBayar.setEnabled(false);
-        btnBayar.setPreferredSize(new Dimension(180,44)); btnBayar.setMaximumSize(new Dimension(180,44));
-        summary.add(sumLeft,BorderLayout.CENTER); summary.add(btnBayar,BorderLayout.EAST);
-        inner.add(summary);
-
-        // ── Logic ──────────────────────────────────────────────
-        final int[] selPaket={-1};
-        final double[] selHarga={0};
-        final int[] selGame={0};
-
-        // Game-specific form config
-        String[][] gameConfig={
-            // {id_label, id_hint, server_label, show_server}
-            {"User ID (UID)","Contoh: 123456789","Server",         "false"},  // HSR
-            {"User ID (UID)","Contoh: 987654321","Server",         "false"},  // Genshin
-            {"User ID","Contoh: @username","Server",                "false"},  // Roblox
-            {"User ID","Contoh: 12345678","Server ID","true"},                // MLBB - butuh server
-            {"Player ID","Contoh: 12345678","Server",               "false"}, // FF
-            {"Player ID","Contoh: 12345678","Server",               "false"}  // PUBG
-        };
-
-        Runnable updateForm=()->{
-            int gi=selGame[0];
-            if(gi>=gameConfig.length)return;
-            String[] cfg=gameConfig[gi];
-            lblIDLabel.setText(cfg[0]); lblHint.setText("  "+cfg[1]);
-            lblServerLabel.setText(cfg[2]);
-            boolean showServer=cfg[3].equals("true");
-            lblServerLabel.setVisible(showServer); txtServer.setVisible(showServer);
-            dataPanel.revalidate(); dataPanel.repaint();
-        };
-
-        Runnable loadPaket=()->{
-            grid.removeAll();
-            int gi=selGame[0]; if(gi>=games.size())return;
-            int idGame=Integer.parseInt(games.get(gi)[0]);
-            Color c=gc[gi%gc.length];
-            ArrayList<String[]> pakets=gDao.getPaketByGame(idGame);
-            for(String[] p:pakets){
-                int pid=Integer.parseInt(p[0]); double h=Double.parseDouble(p[5]);
-                JPanel pCard=new JPanel(new BorderLayout()){
-                    protected void paintComponent(Graphics g){
-                        Graphics2D g2=(Graphics2D)g.create();
-                        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
-                        g2.setColor(selPaket[0]==pid?new Color(c.getRed(),c.getGreen(),c.getBlue(),60):Theme.CARD2);
-                        g2.fill(new RoundRectangle2D.Double(0,0,getWidth()-1,getHeight()-1,10,10));
-                        g2.setColor(selPaket[0]==pid?c:Theme.BORDER);
-                        g2.draw(new RoundRectangle2D.Double(0,0,getWidth()-1,getHeight()-1,10,10)); g2.dispose();
-                    }
-                };
-                pCard.setOpaque(false); pCard.setBorder(new EmptyBorder(14,14,14,14));
-                pCard.setPreferredSize(new Dimension(0,120)); pCard.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-                JPanel pl=new JPanel(); pl.setOpaque(false); pl.setLayout(new BoxLayout(pl,BoxLayout.Y_AXIS));
-                // Color top bar
-                JPanel cbar=new JPanel(){protected void paintComponent(Graphics g){g.setColor(c);g.fillRoundRect(0,0,getWidth(),4,4,4);}};
-                cbar.setOpaque(false); cbar.setPreferredSize(new Dimension(0,4));
-                JLabel lAmt=UI.label(p[1],Theme.F_BOLD,c); lAmt.setAlignmentX(Component.LEFT_ALIGNMENT);
-                JLabel lHrg=UI.label(p[4],new Font("Segoe UI",Font.BOLD,15),Theme.TEXT); lHrg.setAlignmentX(Component.LEFT_ALIGNMENT);
-                JLabel lBns=UI.label(p[3].equals("0")?" ":"+ Bonus "+p[3],Theme.F_SMALL,Theme.GREEN_LT); lBns.setAlignmentX(Component.LEFT_ALIGNMENT);
-                pl.add(cbar); pl.add(Box.createVerticalStrut(8)); pl.add(lAmt); pl.add(Box.createVerticalStrut(4)); pl.add(lHrg); pl.add(lBns);
-                pCard.add(pl,BorderLayout.CENTER);
-
-                pCard.addMouseListener(new MouseAdapter(){
-                    public void mouseClicked(MouseEvent e){
-                        selPaket[0]=pid; selHarga[0]=h;
-                        lblPaketSel.setText(p[1]+"  -  "+p[4]); lblPaketSel.setForeground(Theme.TEXT);
-                        lblTotalSel.setText("Total: "+p[4]); btnBayar.setEnabled(true);
-                        grid.repaint(); // refresh card visuals
-                    }
-                    public void mouseEntered(MouseEvent e){ pCard.setBorder(new EmptyBorder(13,13,13,13)); }
-                    public void mouseExited(MouseEvent e){  pCard.setBorder(new EmptyBorder(14,14,14,14)); }
-                });
-                grid.add(pCard);
+                g2.dispose();
+                super.paintComponent(g);
             }
-            grid.revalidate(); grid.repaint();
         };
-
-        for(int i=0;i<tabBtns.length;i++){
-            final int fi3=i; Color c3=gc[fi3%gc.length];
-            tabBtns[i].addActionListener(e->{
-                selGame[0]=fi3; selPaket[0]=-1;
-                lblPaketSel.setText("Belum ada paket dipilih"); lblPaketSel.setForeground(Theme.SUBTEXT);
-                lblTotalSel.setText("Total: Rp 0"); btnBayar.setEnabled(false);
-                // Rerender tabs
-                for(int j=0;j<tabBtns.length;j++){
-                    final int fj=j; Color cj=gc[fj%gc.length];
-                    tabBtns[j].setBackground(fj==fi3?cj:new Color(cj.getRed(),cj.getGreen(),cj.getBlue(),40));
-                }
-                updateForm.run(); loadPaket.run();
-            });
-        }
-        updateForm.run(); loadPaket.run();
-
-        btnBayar.addActionListener(e->{
-            String uid=txtID.getText().trim();
-            if(uid.isEmpty()){ JOptionPane.showMessageDialog(this,"User ID / UID wajib diisi!","Peringatan",JOptionPane.WARNING_MESSAGE); return; }
-            if(selPaket[0]<0){ JOptionPane.showMessageDialog(this,"Pilih paket terlebih dahulu!","Peringatan",JOptionPane.WARNING_MESSAGE); return; }
-            String server=txtServer.isVisible()?txtServer.getText().trim():"";
-            boolean ok=trxDAO.insertTransaksi(user.getIdUser(),selPaket[0],uid,server,selMethod[0],selHarga[0]);
-            if(ok){
-                String namaGame=games.get(selGame[0])[1];
-                String namaPaket=lblPaketSel.getText().replace("Belum ada paket dipilih","");
-                showPaymentDialog(selMethod[0], selHarga[0], namaGame, namaPaket, uid);
-                btnBayar.setEnabled(false); selPaket[0]=-1;
-                lblPaketSel.setText("Belum ada paket dipilih"); lblPaketSel.setForeground(Theme.SUBTEXT);
-                lblTotalSel.setText("Total: Rp 0"); loadPaket.run();
-            } else { JOptionPane.showMessageDialog(this,"Gagal membuat pesanan. Coba lagi.","Error",JOptionPane.ERROR_MESSAGE); }
-        });
-
-        page.add(UI.wrapScroll(inner),BorderLayout.CENTER);
-        content.add(page);
+        tb.setFont(Theme.F_SMBD);
+        tb.setForeground(Color.WHITE);
+        tb.setContentAreaFilled(false);
+        tb.setBorderPainted(false);
+        tb.setFocusPainted(false);
+        tb.setBorder(new EmptyBorder(8, 16, 8, 16));
+        tb.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        tabBtns[i] = tb;
+        tabRow.add(tb);
     }
+    inner.add(tabRow);
+    inner.add(Box.createVerticalStrut(20));
+    inner.add(UI.sep());
+    inner.add(Box.createVerticalStrut(20));
+
+    // Step 2: Data Akun
+    inner.add(UI.label("Step 2 - Masukkan Data Akun Game", Theme.F_HEAD, Theme.SUBTEXT));
+    inner.add(Box.createVerticalStrut(12));
+    UI.RoundPanel dataPanel = new UI.RoundPanel(10, Theme.CARD, Theme.BORDER);
+    dataPanel.setLayout(new BoxLayout(dataPanel, BoxLayout.Y_AXIS));
+    dataPanel.setBorder(new EmptyBorder(16, 18, 16, 18));
+    dataPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 200));
+
+    JTextField txtID = UI.textField();
+    JTextField txtServer = UI.textField();
+    JLabel lblIDLabel = UI.label("User ID / UID", Theme.F_BOLD, Theme.SUBTEXT);
+    lblIDLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+    JLabel lblServerLabel = UI.label("Server (opsional)", Theme.F_BOLD, Theme.SUBTEXT);
+    lblServerLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+    JLabel lblHint = UI.label("", Theme.F_SMALL, Theme.MUTED);
+    lblHint.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+    dataPanel.add(lblIDLabel);
+    dataPanel.add(Box.createVerticalStrut(6));
+    dataPanel.add(txtID);
+    dataPanel.add(Box.createVerticalStrut(12));
+    dataPanel.add(lblServerLabel);
+    dataPanel.add(Box.createVerticalStrut(6));
+    dataPanel.add(txtServer);
+    dataPanel.add(Box.createVerticalStrut(8));
+    dataPanel.add(lblHint);
+
+    inner.add(dataPanel);
+    inner.add(Box.createVerticalStrut(20));
+    inner.add(UI.sep());
+    inner.add(Box.createVerticalStrut(20));
+
+    // Step 3: Paket
+    inner.add(UI.label("Step 3 - Pilih Paket", Theme.F_HEAD, Theme.SUBTEXT));
+    inner.add(Box.createVerticalStrut(12));
+    JPanel gridWrap = new JPanel(new BorderLayout());
+    gridWrap.setOpaque(false);
+    JPanel grid = new JPanel(new GridLayout(0, 4, 12, 12));
+    grid.setOpaque(false);
+    gridWrap.add(grid, BorderLayout.NORTH);
+    inner.add(gridWrap);
+    inner.add(Box.createVerticalStrut(20));
+    inner.add(UI.sep());
+    inner.add(Box.createVerticalStrut(20));
+
+    // Step 4: Metode Pembayaran
+    inner.add(UI.label("Step 4 - Metode Pembayaran", Theme.F_HEAD, Theme.SUBTEXT));
+    inner.add(Box.createVerticalStrut(12));
+    String[] methods = {"DANA", "GoPay", "OVO", "Transfer Bank", "Alfamart", "Indomaret", "ShopeePay", "LinkAja"};
+    JPanel methodGrid = new JPanel(new GridLayout(2, 4, 10, 10));
+    methodGrid.setOpaque(false);
+    methodGrid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
+    JButton[] mBtns = new JButton[methods.length];
+    final String[] selMethod = {methods[0]};
+    for (int i = 0; i < methods.length; i++) {
+        final int fi2 = i;
+        mBtns[i] = new JButton(methods[i]) {
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                Color bg2 = getText().equals(selMethod[0]) ? Theme.ACCENT : Theme.CARD2;
+                g2.setColor(bg2);
+                g2.fill(new RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), 8, 8));
+                if (getText().equals(selMethod[0])) {
+                    g2.setColor(Theme.ACCENT.brighter());
+                    g2.draw(new RoundRectangle2D.Double(0, 0, getWidth() - 1, getHeight() - 1, 8, 8));
+                }
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        mBtns[i].setFont(Theme.F_SMBD);
+        mBtns[i].setForeground(Color.WHITE);
+        mBtns[i].setContentAreaFilled(false);
+        mBtns[i].setBorderPainted(false);
+        mBtns[i].setFocusPainted(false);
+        mBtns[i].setBorder(new EmptyBorder(6, 10, 6, 10));
+        mBtns[i].setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        mBtns[i].addActionListener(e -> {
+            selMethod[0] = methods[fi2];
+            for (JButton b : mBtns) b.repaint();
+        });
+        methodGrid.add(mBtns[i]);
+    }
+    inner.add(methodGrid);
+    inner.add(Box.createVerticalStrut(20));
+
+    // Summary
+    UI.RoundPanel summary = new UI.RoundPanel(10, Theme.CARD, Theme.BORDER);
+    summary.setLayout(new BorderLayout(20, 0));
+    summary.setBorder(new EmptyBorder(16, 20, 16, 20));
+    summary.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
+    JPanel sumLeft = new JPanel();
+    sumLeft.setOpaque(false);
+    sumLeft.setLayout(new BoxLayout(sumLeft, BoxLayout.Y_AXIS));
+    JLabel lblPaketSel = UI.label("Belum ada paket dipilih", Theme.F_BOLD, Theme.SUBTEXT);
+    JLabel lblDiskon = UI.label("", Theme.F_SMALL, Theme.GREEN_LT);
+    lblDiskon.setAlignmentX(Component.LEFT_ALIGNMENT);
+    JLabel lblTotalSel = UI.label("Total: Rp 0", new Font("Segoe UI", Font.BOLD, 20), Theme.ACCENT);
+    sumLeft.add(lblPaketSel);
+    sumLeft.add(Box.createVerticalStrut(2));
+    sumLeft.add(lblDiskon);
+    sumLeft.add(Box.createVerticalStrut(2));
+    sumLeft.add(lblTotalSel);
+    JButton btnBayar = UI.primaryBtn("Bayar Sekarang", Theme.GREEN, new Color(10, 14, 26));
+    btnBayar.setFont(new Font("Segoe UI", Font.BOLD, 14));
+    btnBayar.setEnabled(false);
+    btnBayar.setPreferredSize(new Dimension(180, 44));
+    btnBayar.setMaximumSize(new Dimension(180, 44));
+    summary.add(sumLeft, BorderLayout.CENTER);
+    summary.add(btnBayar, BorderLayout.EAST);
+
+    // Step 5: Voucher
+    inner.add(UI.label("Step 5 - Kode Voucher (Opsional)", Theme.F_HEAD, Theme.SUBTEXT));
+    inner.add(Box.createVerticalStrut(12));
+    UI.RoundPanel vPanel = new UI.RoundPanel(10, Theme.CARD, Theme.BORDER);
+    vPanel.setLayout(new BoxLayout(vPanel, BoxLayout.Y_AXIS));
+    vPanel.setBorder(new EmptyBorder(14, 16, 14, 16));
+    vPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
+    JPanel vRow = new JPanel(new BorderLayout(10, 0));
+    vRow.setOpaque(false);
+    vRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+    JTextField txtVoucher = UI.textField();
+    txtVoucher.setPreferredSize(new Dimension(0, 42));
+    JButton btnPakai = UI.smallBtn("Pakai", Theme.ACCENT2, Color.WHITE);
+    btnPakai.setPreferredSize(new Dimension(80, 42));
+    JButton btnHapus = UI.smallBtn("Hapus", new Color(239, 68, 68, 80), Theme.RED);
+    btnHapus.setPreferredSize(new Dimension(80, 42));
+    btnHapus.setVisible(false);
+    JPanel vBtnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+    vBtnRow.setOpaque(false);
+    vBtnRow.add(btnPakai);
+    vBtnRow.add(btnHapus);
+    vRow.add(txtVoucher, BorderLayout.CENTER);
+    vRow.add(vBtnRow, BorderLayout.EAST);
+    JLabel lblVoucherMsg = UI.label("Masukkan kode voucher untuk mendapat diskon", Theme.F_SMALL, Theme.MUTED);
+    lblVoucherMsg.setAlignmentX(Component.LEFT_ALIGNMENT);
+    vPanel.add(vRow);
+    vPanel.add(Box.createVerticalStrut(8));
+    vPanel.add(lblVoucherMsg);
+    inner.add(vPanel);
+    inner.add(Box.createVerticalStrut(16));
+    inner.add(summary);
+
+    // ── Logic ──
+    VoucherDAO vDao = new VoucherDAO();
+
+    Runnable updateTotal = () -> {
+        double ft = selHarga[0] - selDiskon[0];
+        if (ft < 0) ft = 0;
+        lblTotalSel.setText("Total: " + String.format("Rp %,.0f", ft));
+    };
+
+    // Tombol Pakai Voucher (dengan pesan error spesifik)
+    btnPakai.addActionListener(e -> {
+        String kode = txtVoucher.getText().trim().toUpperCase();
+        if (kode.isEmpty()) {
+            lblVoucherMsg.setText("Masukkan kode voucher!");
+            lblVoucherMsg.setForeground(Theme.RED);
+            return;
+        }
+        if (selPaket[0] < 0) {
+            lblVoucherMsg.setText("Pilih paket dahulu sebelum memakai voucher!");
+            lblVoucherMsg.setForeground(Theme.YELLOW);
+            return;
+        }
+        String[] v = vDao.validateVoucher(kode, selHarga[0]);
+        if (v == null) {
+            String reason = vDao.getValidationReason(kode, selHarga[0]);
+            lblVoucherMsg.setText("Voucher tidak valid: " + reason);
+            lblVoucherMsg.setForeground(Theme.RED);
+            selIdVoucher[0] = -1;
+            selDiskon[0] = 0;
+            lblDiskon.setText("");
+            updateTotal.run();
+        } else {
+            selIdVoucher[0] = Integer.parseInt(v[0]);
+            double nilai = Double.parseDouble(v[2]);
+            double maks = Double.parseDouble(v[3]);
+            if (v[1].equals("persen")) {
+                selDiskon[0] = selHarga[0] * nilai / 100.0;
+                if (maks > 0 && selDiskon[0] > maks) selDiskon[0] = maks;
+            } else {
+                selDiskon[0] = nilai;
+            }
+            if (selDiskon[0] > selHarga[0]) selDiskon[0] = selHarga[0];
+            lblVoucherMsg.setText("Voucher berhasil! Hemat " + String.format("Rp %,.0f", selDiskon[0]));
+            lblVoucherMsg.setForeground(Theme.GREEN_LT);
+            lblDiskon.setText("Diskon: - " + String.format("Rp %,.0f", selDiskon[0]));
+            btnPakai.setVisible(false);
+            btnHapus.setVisible(true);
+            txtVoucher.setEditable(false);
+            updateTotal.run();
+        }
+    });
+
+    btnHapus.addActionListener(e -> {
+        selIdVoucher[0] = -1;
+        selDiskon[0] = 0;
+        txtVoucher.setText("");
+        txtVoucher.setEditable(true);
+        lblVoucherMsg.setText("Masukkan kode voucher untuk mendapat diskon");
+        lblVoucherMsg.setForeground(Theme.MUTED);
+        lblDiskon.setText("");
+        btnPakai.setVisible(true);
+        btnHapus.setVisible(false);
+        updateTotal.run();
+    });
+
+    // Konfigurasi form per game
+    String[][] gameConfig = {
+        {"User ID (UID)", "Contoh: 123456789", "Server", "false"},
+        {"User ID (UID)", "Contoh: 987654321", "Server", "false"},
+        {"User ID", "Contoh: @username", "Server", "false"},
+        {"User ID", "Contoh: 12345678", "Server ID", "true"},
+        {"Player ID", "Contoh: 12345678", "Server", "false"},
+        {"Player ID", "Contoh: 12345678", "Server", "false"}
+    };
+
+    Runnable updateForm = () -> {
+        int gi = selGame[0];
+        if (gi >= gameConfig.length) return;
+        String[] cfg = gameConfig[gi];
+        lblIDLabel.setText(cfg[0]);
+        lblHint.setText("  " + cfg[1]);
+        lblServerLabel.setText(cfg[2]);
+        boolean showServer = cfg[3].equals("true");
+        lblServerLabel.setVisible(showServer);
+        txtServer.setVisible(showServer);
+        dataPanel.revalidate();
+        dataPanel.repaint();
+    };
+
+    Runnable loadPaket = () -> {
+        grid.removeAll();
+        int gi = selGame[0];
+        if (gi >= games.size()) return;
+        int idGame = Integer.parseInt(games.get(gi)[0]);
+        Color c = gc[gi % gc.length];
+        ArrayList<String[]> pakets = gDao.getPaketByGame(idGame);
+        for (String[] p : pakets) {
+            int pid = Integer.parseInt(p[0]);
+            double h = Double.parseDouble(p[5]);
+            JPanel pCard = new JPanel(new BorderLayout()) {
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(selPaket[0] == pid ? new Color(c.getRed(), c.getGreen(), c.getBlue(), 60) : Theme.CARD2);
+                    g2.fill(new RoundRectangle2D.Double(0, 0, getWidth() - 1, getHeight() - 1, 10, 10));
+                    g2.setColor(selPaket[0] == pid ? c : Theme.BORDER);
+                    g2.draw(new RoundRectangle2D.Double(0, 0, getWidth() - 1, getHeight() - 1, 10, 10));
+                    g2.dispose();
+                }
+            };
+            pCard.setOpaque(false);
+            pCard.setBorder(new EmptyBorder(14, 14, 14, 14));
+            pCard.setPreferredSize(new Dimension(0, 120));
+            pCard.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+            JPanel pl = new JPanel();
+            pl.setOpaque(false);
+            pl.setLayout(new BoxLayout(pl, BoxLayout.Y_AXIS));
+            JPanel cbar = new JPanel() {
+                protected void paintComponent(Graphics g) {
+                    g.setColor(c);
+                    g.fillRoundRect(0, 0, getWidth(), 4, 4, 4);
+                }
+            };
+            cbar.setOpaque(false);
+            cbar.setPreferredSize(new Dimension(0, 4));
+            JLabel lAmt = UI.label(p[1], Theme.F_BOLD, c);
+            lAmt.setAlignmentX(Component.LEFT_ALIGNMENT);
+            JLabel lHrg = UI.label(p[4], new Font("Segoe UI", Font.BOLD, 15), Theme.TEXT);
+            lHrg.setAlignmentX(Component.LEFT_ALIGNMENT);
+            JLabel lBns = UI.label(p[3].equals("0") ? " " : "+ Bonus " + p[3], Theme.F_SMALL, Theme.GREEN_LT);
+            lBns.setAlignmentX(Component.LEFT_ALIGNMENT);
+            pl.add(cbar);
+            pl.add(Box.createVerticalStrut(8));
+            pl.add(lAmt);
+            pl.add(Box.createVerticalStrut(4));
+            pl.add(lHrg);
+            pl.add(lBns);
+            pCard.add(pl, BorderLayout.CENTER);
+
+            pCard.addMouseListener(new MouseAdapter() {
+                public void mouseClicked(MouseEvent e) {
+                    selPaket[0] = pid;
+                    selHarga[0] = h;
+                    lblPaketSel.setText(p[1] + "  -  " + p[4]);
+                    lblPaketSel.setForeground(Theme.TEXT);
+                    double finalHarga = h - selDiskon[0];
+                    if (finalHarga < 0) finalHarga = 0;
+                    lblTotalSel.setText("Total: " + String.format("Rp %,.0f", finalHarga));
+                    btnBayar.setEnabled(true);
+                    grid.repaint();
+                }
+                public void mouseEntered(MouseEvent e) {
+                    pCard.setBorder(new EmptyBorder(13, 13, 13, 13));
+                }
+                public void mouseExited(MouseEvent e) {
+                    pCard.setBorder(new EmptyBorder(14, 14, 14, 14));
+                }
+            });
+            grid.add(pCard);
+        }
+        grid.revalidate();
+        grid.repaint();
+    };
+
+    // Event untuk tab game
+    for (int i = 0; i < tabBtns.length; i++) {
+        final int fi3 = i;
+        tabBtns[i].addActionListener(e -> {
+            selGame[0] = fi3;
+            selPaket[0] = -1;
+            lblPaketSel.setText("Belum ada paket dipilih");
+            lblPaketSel.setForeground(Theme.SUBTEXT);
+            lblTotalSel.setText("Total: Rp 0");
+            btnBayar.setEnabled(false);
+            selIdVoucher[0] = -1;
+            selDiskon[0] = 0;
+            lblDiskon.setText("");
+            txtVoucher.setText("");
+            txtVoucher.setEditable(true);
+            lblVoucherMsg.setText("Masukkan kode voucher untuk mendapat diskon");
+            lblVoucherMsg.setForeground(Theme.MUTED);
+            btnPakai.setVisible(true);
+            btnHapus.setVisible(false);
+            for (JButton b : tabBtns) b.repaint();
+            updateForm.run();
+            loadPaket.run();
+        });
+    }
+
+    updateForm.run();
+    loadPaket.run();
+
+    // Tombol Bayar (dengan pengurangan kuota voucher)
+    btnBayar.addActionListener(e -> {
+        String uid = txtID.getText().trim();
+        if (uid.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "User ID / UID wajib diisi!", "Peringatan", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (selPaket[0] < 0) {
+            JOptionPane.showMessageDialog(this, "Pilih paket terlebih dahulu!", "Peringatan", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        String server = txtServer.isVisible() ? txtServer.getText().trim() : "";
+        double finalTotal = selHarga[0] - selDiskon[0];
+        if (finalTotal < 0) finalTotal = 0;
+        boolean ok = trxDAO.insertTransaksi(user.getIdUser(), selPaket[0], uid, server, selMethod[0], finalTotal);
+        if (ok) {
+            // Kurangi kuota voucher jika digunakan
+            if (selIdVoucher[0] != -1) {
+                vDao.incrementTerpakai(selIdVoucher[0]);
+            }
+            String namaGame = games.get(selGame[0])[1];
+            String namaPaket = lblPaketSel.getText().replace("Belum ada paket dipilih", "");
+            showPaymentDialog(selMethod[0], finalTotal, namaGame, namaPaket, uid);
+            btnBayar.setEnabled(false);
+            selPaket[0] = -1;
+            selIdVoucher[0] = -1;
+            selDiskon[0] = 0;
+            lblPaketSel.setText("Belum ada paket dipilih");
+            lblPaketSel.setForeground(Theme.SUBTEXT);
+            lblTotalSel.setText("Total: Rp 0");
+            lblDiskon.setText("");
+            txtVoucher.setText("");
+            txtVoucher.setEditable(true);
+            lblVoucherMsg.setText("Masukkan kode voucher untuk mendapat diskon");
+            lblVoucherMsg.setForeground(Theme.MUTED);
+            btnPakai.setVisible(true);
+            btnHapus.setVisible(false);
+            loadPaket.run();
+        } else {
+            JOptionPane.showMessageDialog(this, "Gagal membuat pesanan. Coba lagi.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    });
+
+    page.add(UI.wrapScroll(inner), BorderLayout.CENTER);
+    content.add(page);
+}
 
     // ══════════════════════════════════════════════════════════
     // PESANAN SAYA
