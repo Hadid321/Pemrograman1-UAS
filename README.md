@@ -9,6 +9,7 @@ Mendukung 6 game populer: Honkai: Star Rail, Genshin Impact, Roblox, Mobile Lege
 
 | Nama | NIM |
 |------|-----|
+| Achmad Maulana | 241011400842 |
 | Aditya Darmawan (Ketua) | 241011400824 |
 | Ahmad Faiz Arkhan | 241011400813 |
 | Hadid Riansyah | 241011400908 |
